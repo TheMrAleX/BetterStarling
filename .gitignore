@@ -1,0 +1,42 @@
+/.local/
+/target/
+**/__pycache__/
+*.py[cod]
+/.venv/
+# Downloaded/decompiled game content and private profiling artifacts.
+*.jar
+*.class
+*.jfr
+*.hprof
+/decompiled/
+/minecraft/
+/assets/
+/run/
+/logs/
+/dist/
+/mods/horizon/build/
+/saves/
+/backups/
+/tools/logs/
+.DS_Store
+# What the client writes to its working directory when run from the repo root.
+/options.txt
+/debug-profile.json
+/horizon.txt
+/horizon-graphics.txt
+/horizon-controller.txt
+/horizon-extras.txt
+/horizon-player.txt
+/servers.dat
+/touch-layout.json
+/resourcepacks/
+/horizon-mods/
+/screenshots/
+/.horizon-cache/
+/crash-reports/
+/debug/
+
+# Mod storage the game writes beside a mod it runs (--dev-mod of a source folder).
+.horizon-mod-data/
+# Release-only compiled original exporter bundle.
+/exporters/

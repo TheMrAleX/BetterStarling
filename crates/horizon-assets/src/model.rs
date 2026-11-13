@@ -1,0 +1,528 @@
+//! The 26.3 cuboid model format, before parent resolution and quad baking.
+//!
+//! Absent geometry differs from an explicit empty element list. Explicit null
+//! elements, faces and display transforms are retained as the native decoder
+//! does; render preparation must diagnose these before baking.
+use crate::json::*;
+use serde_json::value::RawValue;
+use std::collections::BTreeMap;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Direction {
+    Down,
+    Up,
+    North,
+    South,
+    West,
+    East,
+}
+impl Direction {
+    pub const ALL: [Self; 6] = [
+        Self::Down,
+        Self::Up,
+        Self::North,
+        Self::South,
+        Self::West,
+        Self::East,
+    ];
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Down => "down",
+            Self::Up => "up",
+            Self::North => "north",
+            Self::South => "south",
+            Self::West => "west",
+            Self::East => "east",
+        }
+    }
+    pub fn by_name(name: &str) -> Option<Self> {
+        Self::ALL
+            .into_iter()
+            .find(|direction| direction.name() == name)
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GuiLight {
+    Front,
+    Side,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Material {
+    pub sprite: String,
+    pub force_translucent: bool,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum TextureSlot {
+    Reference(String),
+    Material(Material),
+}
+#[derive(Clone, Debug, PartialEq)]
+pub struct CuboidModel {
+    pub parent: Option<String>,
+    pub ambient_occlusion: Option<bool>,
+    pub gui_light: Option<GuiLight>,
+    pub textures: BTreeMap<String, TextureSlot>,
+    pub elements: Option<Vec<Option<Element>>>,
+    pub display: Option<ItemTransforms>,
+    /// NeoForge's OBJ loader (mods' blocks): the mesh file it names; its faces, once read beside
+    /// the model (`mesh`), are drawn with the elements.
+    pub obj: Option<ObjSource>,
+    pub mesh: Option<std::sync::Arc<Vec<crate::obj::MeshFace>>>,
+}
+/// The OBJ file of a `neoforge:obj` model: `<ns>:<path to the .obj>` and whether its UVs' v is
+/// upside down.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ObjSource {
+    pub model: String,
+    pub flip_v: bool,
+}
+#[derive(Clone, Debug, PartialEq)]
+pub struct Element {
+    pub from: [f32; 3],
+    pub to: [f32; 3],
+    pub faces: BTreeMap<Direction, Option<Face>>,
+    pub rotation: Option<ElementRotation>,
+    pub shade_direction_override: Option<Direction>,
+    pub light_emission: u8,
+}
+#[derive(Clone, Debug, PartialEq)]
+pub struct Face {
+    pub cull: Option<Direction>,
+    pub tint_index: i32,
+    pub texture: String,
+    pub uv: Option<[f32; 4]>,
+    /// Normalized counterclockwise quadrants, in the range 0..4.
+    pub rotation: u8,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Axis {
+    X,
+    Y,
+    Z,
+}
+#[derive(Clone, Debug, PartialEq)]
+pub enum RotationValue {
+    SingleAxis { axis: Axis, angle: f32 },
+    EulerXyz([f32; 3]),
+}
+#[derive(Clone, Debug, PartialEq)]
+pub struct ElementRotation {
+    /// Block units, converted from model coordinates during decoding.
+    pub origin: [f32; 3],
+    pub value: RotationValue,
+    pub rescale: bool,
+}
+#[derive(Clone, Debug, PartialEq)]
+pub struct ItemTransform {
+    pub rotation: [f32; 3],
+    pub translation: [f32; 3],
+    pub scale: [f32; 3],
+}
+/// Missing transforms inherit later. Explicit identity and null values do not.
+#[derive(Clone, Debug, PartialEq)]
+pub enum DisplayTransform {
+    Inherit,
+    Explicit(Option<ItemTransform>),
+}
+pub const DISPLAY_CONTEXTS: [&str; 9] = [
+    "thirdperson_lefthand",
+    "thirdperson_righthand",
+    "firstperson_lefthand",
+    "firstperson_righthand",
+    "head",
+    "gui",
+    "ground",
+    "fixed",
+    "on_shelf",
+];
+#[derive(Clone, Debug, PartialEq)]
+pub struct ItemTransforms {
+    pub contexts: [DisplayTransform; 9],
+}
+
+impl CuboidModel {
+    /// Decode strict JSON, preserving the native parser's primitive coercions,
+    /// optional inheritance fields, nullable children and f32 conversion.
+    /// Like the native stream entry point, this reads one value and leaves
+    /// trailing input unread. The pinned native entry point uses strict JSON.
+    pub fn from_json(json: &str) -> Result<Self> {
+        let json = json.strip_prefix('\u{feff}').unwrap_or(json);
+        // NeoForge's composite models (mods' blocks): one model of their children's elements.
+        if json.contains("composite")
+            && let Some(flat) = flatten_composite(json)
+        {
+            return Self::from_json(&flat);
+        }
+        let raw = serde_json::Deserializer::from_str(json)
+            .into_iter::<&RawValue>()
+            .next()
+            .ok_or_else(|| error("empty model input"))??;
+        validate_number_tokens(raw)?;
+        Self::decode(raw)
+    }
+    fn decode(raw: &RawValue) -> Result<Self> {
+        let obj = object(raw)?;
+        let parent = obj
+            .get("parent")
+            .map(|r| primitive_string(r))
+            .transpose()?
+            .unwrap_or_default();
+        let parent = if parent.is_empty() {
+            None
+        } else {
+            Some(identifier(&parent)?)
+        };
+        let ambient_occlusion = obj
+            .get("ambientocclusion")
+            .map(|r| boolean(r))
+            .transpose()?;
+        let gui_light = obj
+            .get("gui_light")
+            .map(|raw| match primitive_string(raw)?.as_str() {
+                "front" => Ok(GuiLight::Front),
+                "side" => Ok(GuiLight::Side),
+                _ => Err(error("invalid gui light")),
+            })
+            .transpose()?;
+        let mut textures = BTreeMap::new();
+        if let Some(raw) = obj.get("textures") {
+            for (key, raw) in object(raw)? {
+                textures.insert(key, texture(raw)?);
+            }
+        }
+        let elements = obj
+            .get("elements")
+            .map(|raw| {
+                array(raw)?
+                    .into_iter()
+                    .map(|raw| nullable(raw, Element::decode))
+                    .collect::<Result<Vec<_>>>()
+            })
+            .transpose()?;
+        let display = obj
+            .get("display")
+            .map(|r| ItemTransforms::decode(r))
+            .transpose()?;
+        // NeoForge's OBJ models: the mesh is read beside the model (`mesh`); the model itself is
+        // where the geometry is, with no elements of its own.
+        let loader = obj.get("loader").map(|r| primitive_string(r)).transpose()?;
+        let source = match (loader.as_deref(), obj.get("model")) {
+            (Some(l), Some(model)) if l.ends_with(":obj") => Some(ObjSource {
+                model: primitive_string(model)?,
+                flip_v: obj
+                    .get("flip_v")
+                    .map(|r| boolean(r))
+                    .transpose()?
+                    .unwrap_or(false),
+            }),
+            _ => None,
+        };
+        let elements = match (&source, elements) {
+            (Some(_), None) => Some(Vec::new()),
+            (_, elements) => elements,
+        };
+        Ok(Self {
+            parent,
+            ambient_occlusion,
+            gui_light,
+            textures,
+            elements,
+            display,
+            obj: source,
+            mesh: None,
+        })
+    }
+}
+/// A `neoforge:composite` (or `forge:composite`) model as one plain model: its own elements, then
+/// each child's, the children's texture slots renamed `<child>_<slot>` so two children's `#0`
+/// stay apart (a slot a child does not set is the composite's). Only children written out in
+/// place; a child naming a parent model leaves the model as it is (None).
+fn flatten_composite(json: &str) -> Option<String> {
+    use serde_json::Value;
+    let mut model: serde_json::Map<String, Value> = serde_json::from_str(json).ok()?;
+    let loader = model.get("loader")?.as_str()?;
+    if !loader.ends_with(":composite") {
+        return None;
+    }
+    let children = model.remove("children")?;
+    model.remove("loader");
+    let mut elements = match model.remove("elements") {
+        Some(Value::Array(own)) => own,
+        _ => Vec::new(),
+    };
+    let mut textures = match model.remove("textures") {
+        Some(Value::Object(own)) => own,
+        _ => serde_json::Map::new(),
+    };
+    for (name, child) in children.as_object()? {
+        let child = child.as_object()?;
+        if child.contains_key("parent") {
+            return None;
+        }
+        let own = child.get("textures").and_then(Value::as_object);
+        let renamed = |slot: &str| match own {
+            Some(own) if own.contains_key(slot) => format!("{name}_{slot}"),
+            _ => slot.to_owned(),
+        };
+        for (slot, value) in own.into_iter().flatten() {
+            let value = match value.as_str().and_then(|v| v.strip_prefix('#')) {
+                Some(target) => Value::String(format!("#{}", renamed(target))),
+                None => value.clone(),
+            };
+            textures.insert(renamed(slot), value);
+        }
+        for element in child
+            .get("elements")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+        {
+            let mut element = element.clone();
+            if let Some(faces) = element.get_mut("faces").and_then(Value::as_object_mut) {
+                for face in faces.values_mut() {
+                    let target = face
+                        .get("texture")
+                        .and_then(Value::as_str)
+                        .and_then(|t| t.strip_prefix('#'))
+                        .map(renamed);
+                    if let (Some(target), Some(face)) = (target, face.as_object_mut()) {
+                        face.insert("texture".into(), Value::String(format!("#{target}")));
+                    }
+                }
+            }
+            elements.push(element);
+        }
+    }
+    model.insert("textures".into(), Value::Object(textures));
+    model.insert("elements".into(), Value::Array(elements));
+    serde_json::to_string(&model).ok()
+}
+
+fn nullable<T>(raw: &RawValue, decode: impl FnOnce(&RawValue) -> Result<T>) -> Result<Option<T>> {
+    if raw.get() == "null" {
+        Ok(None)
+    } else {
+        decode(raw).map(Some)
+    }
+}
+fn texture(raw: &RawValue) -> Result<TextureSlot> {
+    if raw.get().starts_with('"') {
+        let name = string(raw)?;
+        if name.is_empty() {
+            return Err(error("empty texture slot value"));
+        }
+        if let Some(target) = name.strip_prefix('#') {
+            return Ok(TextureSlot::Reference(target.to_owned()));
+        }
+        return Ok(TextureSlot::Material(Material {
+            sprite: identifier(&name)?,
+            force_translucent: false,
+        }));
+    }
+    let obj = object(raw)?;
+    let sprite = identifier(&string(required(&obj, "sprite")?)?)?;
+    let force_translucent = match obj.get("force_translucent") {
+        None => false,
+        Some(raw) if raw.get() == "null" => false,
+        Some(raw) if raw.get() == "true" => true,
+        Some(raw) if raw.get() == "false" => false,
+        Some(_) => return Err(error("invalid material boolean")),
+    };
+    Ok(TextureSlot::Material(Material {
+        sprite,
+        force_translucent,
+    }))
+}
+impl Element {
+    fn decode(raw: &RawValue) -> Result<Self> {
+        let obj = object(raw)?;
+        let from = vector(required(&obj, "from")?)?;
+        let to = vector(required(&obj, "to")?)?;
+        if from.iter().chain(&to).any(|v| !(-16.0..=32.0).contains(v)) {
+            return Err(error("element outside model bounds"));
+        }
+        let rotation = obj
+            .get("rotation")
+            .map(|r| ElementRotation::decode(r))
+            .transpose()?;
+        let mut faces = BTreeMap::new();
+        for (name, raw) in object(required(&obj, "faces")?)? {
+            let direction =
+                Direction::by_name(&name).ok_or_else(|| error("invalid face direction"))?;
+            faces.insert(direction, nullable(raw, Face::decode)?);
+        }
+        if faces.is_empty() {
+            return Err(error("element requires a face"));
+        }
+        let shade_direction_override = obj
+            .get("shade_direction_override")
+            .map(|raw| {
+                Direction::by_name(&primitive_string(raw)?)
+                    .ok_or_else(|| error("invalid shade direction"))
+            })
+            .transpose()?;
+        let light_emission = obj
+            .get("light_emission")
+            .map(|r| integer(r))
+            .transpose()?
+            .unwrap_or(0);
+        if !(0..=15).contains(&light_emission) {
+            return Err(error("invalid light emission"));
+        }
+        Ok(Self {
+            from,
+            to,
+            faces,
+            rotation,
+            shade_direction_override,
+            light_emission: light_emission as u8,
+        })
+    }
+}
+impl Face {
+    fn decode(raw: &RawValue) -> Result<Self> {
+        let obj = object(raw)?;
+        let cull = obj
+            .get("cullface")
+            .map(|r| primitive_string(r))
+            .transpose()?
+            .and_then(|s| Direction::by_name(&s));
+        let texture = primitive_string(required(&obj, "texture")?)?;
+        let tint_index = obj
+            .get("tintindex")
+            .map(|r| integer(r))
+            .transpose()?
+            .unwrap_or(-1);
+        let rotation = obj
+            .get("rotation")
+            .map(|r| integer(r))
+            .transpose()?
+            .unwrap_or(0)
+            .rem_euclid(360);
+        if rotation % 90 != 0 {
+            return Err(error("face rotation must be a multiple of 90"));
+        }
+        let uv = obj.get("uv").map(|r| vector(r)).transpose()?;
+        Ok(Self {
+            cull,
+            tint_index,
+            texture,
+            uv,
+            rotation: (rotation / 90) as u8,
+        })
+    }
+}
+impl ElementRotation {
+    fn decode(raw: &RawValue) -> Result<Self> {
+        let obj = object(raw)?;
+        let origin = vector::<3>(required(&obj, "origin")?)?.map(|v| v * 0.0625);
+        let value = if obj.contains_key("axis") || obj.contains_key("angle") {
+            let axis = match primitive_string(required(&obj, "axis")?)?
+                .to_lowercase()
+                .as_str()
+            {
+                "x" => Axis::X,
+                "y" => Axis::Y,
+                "z" => Axis::Z,
+                _ => return Err(error("invalid rotation axis")),
+            };
+            RotationValue::SingleAxis {
+                axis,
+                angle: float(required(&obj, "angle")?)?,
+            }
+        } else if ["x", "y", "z"].iter().any(|key| obj.contains_key(*key)) {
+            let mut angles = [0.0; 3];
+            for (angle, key) in angles.iter_mut().zip(["x", "y", "z"]) {
+                *angle = obj.get(key).map(|r| float(r)).transpose()?.unwrap_or(0.0);
+            }
+            RotationValue::EulerXyz(angles)
+        } else {
+            return Err(error("missing rotation value"));
+        };
+        let rescale = obj
+            .get("rescale")
+            .map(|r| boolean(r))
+            .transpose()?
+            .unwrap_or(false);
+        Ok(Self {
+            origin,
+            value,
+            rescale,
+        })
+    }
+}
+impl ItemTransform {
+    fn decode(raw: &RawValue) -> Result<Self> {
+        let obj = object(raw)?;
+        let rotation = obj
+            .get("rotation")
+            .map(|r| vector(r))
+            .transpose()?
+            .unwrap_or([0.0; 3]);
+        let translation = obj
+            .get("translation")
+            .map(|r| vector(r))
+            .transpose()?
+            .unwrap_or([0.0; 3])
+            .map(|v| (v * 0.0625).clamp(-5.0, 5.0));
+        let scale = obj
+            .get("scale")
+            .map(|r| vector(r))
+            .transpose()?
+            .unwrap_or([1.0; 3])
+            .map(|v| v.clamp(-4.0, 4.0));
+        Ok(Self {
+            rotation,
+            translation,
+            scale,
+        })
+    }
+}
+impl ItemTransforms {
+    fn decode(raw: &RawValue) -> Result<Self> {
+        let obj = object(raw)?;
+        let mut contexts = std::array::from_fn(|_| DisplayTransform::Inherit);
+        for (transform, key) in contexts.iter_mut().zip(DISPLAY_CONTEXTS) {
+            if let Some(raw) = obj.get(key) {
+                *transform = DisplayTransform::Explicit(nullable(raw, ItemTransform::decode)?);
+            }
+        }
+        for (left, right) in [(0, 1), (2, 3)] {
+            if contexts[left] == DisplayTransform::Inherit {
+                contexts[left] = contexts[right].clone();
+            }
+        }
+        Ok(Self { contexts })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_composite_model_is_its_childrens_elements_with_their_own_textures() {
+        let json = r##"{"loader":"neoforge:composite","parent":"block/block",
+            "textures":{"particle":"create:block/casing"},
+            "children":{
+                "base":{"textures":{"0":"create:block/base"},
+                    "elements":[{"from":[0,0,0],"to":[16,4,16],"faces":{"up":{"texture":"#0"}}}]},
+                "bulb":{"textures":{"0":"create:block/bulb","1":"#0"},
+                    "elements":[{"from":[6,4,6],"to":[10,8,10],
+                        "faces":{"up":{"texture":"#1"},"down":{"texture":"#particle"}}}]}}}"##;
+        let model = CuboidModel::from_json(json).unwrap();
+        assert_eq!(model.parent.as_deref(), Some("minecraft:block/block"));
+        let elements: Vec<Element> = model.elements.unwrap().into_iter().flatten().collect();
+        let face = |e: &Element, d: Direction| e.faces[&d].as_ref().unwrap().texture.clone();
+        // Each child's #0 its own; a slot a child does not set is the composite's.
+        assert_eq!(face(&elements[0], Direction::Up), "#base_0");
+        assert_eq!(face(&elements[1], Direction::Up), "#bulb_1");
+        assert_eq!(face(&elements[1], Direction::Down), "#particle");
+        assert!(matches!(&model.textures["bulb_1"], TextureSlot::Reference(t) if t == "bulb_0"));
+        assert!(model.textures.contains_key("base_0") && model.textures.contains_key("particle"));
+        // A child naming its parent model is left as it is.
+        let parented =
+            r#"{"loader":"neoforge:composite","children":{"a":{"parent":"block/stone"}}}"#;
+        assert!(flatten_composite(parented).is_none());
+    }
+}

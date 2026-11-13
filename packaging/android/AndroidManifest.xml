@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- build_apk.py fills in @APPLICATION_ID@ and @LABEL@; aapt2 sets the SDK and version numbers.
+     LauncherActivity (java/), in a process of its own, takes files opened with or shared to
+     Starling and restarts the game when it asks; StarlingActivity is NativeActivity plus the
+     system bars, the keyboard height, the file manager, picker, clipboard and the Starling
+     folder's setting, the mouse's capture, the controllers' motors, and the process ending with
+     the activity. The libraries are extracted at
+     install: the Java launchers that prepare the game files on the phone run from there. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="@APPLICATION_ID@">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- The active network's DNS servers, for servers named by an SRV record. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- The Starling folder in shared storage (Android 11 and up; before, the two below). -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <!-- The update prompt hands the release it downloaded to Android's installer, which asks the
+         player first. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- WorkService: the game stays in the foreground while the player signs in in the browser
+         or the game files download, which many phones would otherwise cut off the internet. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- A controller's motors (StarlingActivity.vibratePad): hits, explosions, a totem. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- For native mods that capture sound (a voice chat): asked only when the running build has
+         one, which native_build.sh finds in the mod's source (StarlingActivity.askModPermissions). -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-feature android:name="android.hardware.vulkan.version" android:version="0x400003" android:required="true" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <!-- Horizon Android, now part of Starling: the setup offers to bring its worlds and packs
+         over when it is installed (HorizonImport), which Android 11 and up only tell an app that
+         names it here. -->
+    <queries>
+        <package android:name="dev.horizon.android" />
+    </queries>
+    <application
+        android:label="@LABEL@"
+        android:icon="@mipmap/ic_launcher"
+        android:hasCode="true"
+        android:isGame="true"
+        android:appCategory="game"
+        android:requestLegacyExternalStorage="true"
+        android:extractNativeLibs="true">
+        <!-- A task of its own, out of the recents: the game's task stays the game's. -->
+        <activity
+            android:name="io.github.juanluci.starling.LauncherActivity"
+            android:exported="true"
+            android:process=":launcher"
+            android:taskAffinity="@APPLICATION_ID@.launcher"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <!-- Packs, worlds, shader packs, mods and prepared resources as .zip, opened with
+                 or shared to Starling. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="application/zip" />
+                <data android:mimeType="application/x-zip-compressed" />
+                <data android:mimeType="application/octet-stream" />
+            </intent-filter>
+            <!-- Starling's own extension (.starling: any of them, told apart by what it holds)
+                 and Horizon's mods (.hmod), by name as Bedrock does .mcpack: a file manager that
+                 does not know them offers the apps that do. The extra patterns let the path
+                 hold dots before the name. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:host="*" />
+                <data android:mimeType="*/*" />
+                <data android:pathPattern=".*\\.starling" />
+                <data android:pathPattern=".*\\..*\\.starling" />
+                <data android:pathPattern=".*\\..*\\..*\\.starling" />
+                <data android:pathPattern=".*\\.hmod" />
+                <data android:pathPattern=".*\\..*\\.hmod" />
+                <data android:pathPattern=".*\\..*\\..*\\.hmod" />
+                <data android:pathPattern=".*\\.hnmod" />
+                <data android:pathPattern=".*\\..*\\.hnmod" />
+                <data android:pathPattern=".*\\..*\\..*\\.hnmod" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/zip" />
+                <data android:mimeType="application/x-zip-compressed" />
+                <data android:mimeType="application/octet-stream" />
+            </intent-filter>
+        </activity>
+        <!-- Keep the 0.2.3 home-screen component, but route before native loading. -->
+        <activity-alias android:name="io.github.juanluci.starling.StarlingActivity"
+            android:targetActivity="io.github.juanluci.starling.LauncherActivity"
+            android:exported="true">
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity
+            android:name="io.github.juanluci.starling.GameActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:screenOrientation="sensorLandscape"
+            android:resizeableActivity="false"
+            android:theme="@style/Starling.Game"
+            android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|density|screenSize|smallestScreenSize|layoutDirection|colorMode|fontWeightAdjustment|grammaticalGender">
+            <meta-data android:name="android.app.lib_name" android:value="horizon_android" />
+            <!-- Hands over to a build with native mods when the activity loaded one
+                 (android_lib.rs). -->
+            <meta-data android:name="android.app.func_name" android:value="starling_on_create" />
+
+        </activity>
+        <activity android:name="io.github.juanluci.starling.DiagnosticsActivity"
+            android:exported="true" android:process=":diagnostics"
+            android:theme="@style/Starling.Game" android:hardwareAccelerated="false" />
+        <service
+            android:name="io.github.juanluci.starling.WorkService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+        <!-- The downloaded update, for the installer only (UpdateProvider). -->
+        <provider
+            android:name="io.github.juanluci.starling.UpdateProvider"
+            android:authorities="@APPLICATION_ID@.updates"
+            android:exported="false"
+            android:grantUriPermissions="true" />
+        <!-- The game folder in Android's Files app (GameFolderProvider), which only the system may
+             bind. In a process of its own: the game ends its process with its activity, which
+             would cut a copy short. -->
+        <provider
+            android:name="io.github.juanluci.starling.GameFolderProvider"
+            android:authorities="@APPLICATION_ID@.documents"
+            android:exported="true"
+            android:process=":documents"
+            android:grantUriPermissions="true"
+            android:permission="android.permission.MANAGE_DOCUMENTS">
+            <intent-filter>
+                <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
+            </intent-filter>
+        </provider>
+    </application>
+</manifest>
