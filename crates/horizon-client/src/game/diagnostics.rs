@@ -127,7 +127,7 @@ pub(super) fn open_diagnostics() {
             entries
                 .flatten()
                 .filter_map(|e| e.file_name().into_string().ok())
-                .filter(|n| n.starts_with("starling-diagnostics-") && n.ends_with(".zip"))
+                .filter(|n| n.starts_with("mrcraft-diagnostics-") && n.ends_with(".zip"))
                 .max()
         })
         .is_some_and(|name| crate::android::share_diagnostic(&name));

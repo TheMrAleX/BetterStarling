@@ -1,4 +1,4 @@
-package io.github.juanluci.starling;
+package com.themralex.mrcraft;
 
 import android.content.Context;
 import android.database.Cursor;
@@ -42,7 +42,7 @@ public final class GameFolderProvider extends DocumentsProvider {
     /** Looked up on each call: the player can allow shared storage while this process lives. */
     private GameFolder folder() {
         Context context = getContext();
-        return GameFolder.choose(context.getFilesDir(), StarlingActivity.sharedFolder(context));
+        return GameFolder.choose(context.getFilesDir(), MrCraftActivity.sharedFolder(context));
     }
 
     /** The manifest's authority, which follows the package: Starling and its Preview side by side. */

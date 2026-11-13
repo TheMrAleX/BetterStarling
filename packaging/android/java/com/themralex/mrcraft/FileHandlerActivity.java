@@ -1,4 +1,4 @@
-package io.github.juanluci.starling;
+package com.themralex.mrcraft;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -22,15 +22,15 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
- * What runs before the game (StarlingActivity) when it is handed something, in a process and a
- * task of its own: a file opened with Starling or shared to it (a resource pack, a world, a mod,
+ * What runs before the game (MrCraftActivity) when it is handed something, in a process and a
+ * task of its own: a file opened with MrCraft or shared to it (a resource pack, a world, a mod,
  * the prepared resources) is copied into the game's import inbox, which the game installs from
  * (crates/horizon-client/src/import.rs); and a restart the game asked for starts it again once
  * its old process has ended.
  */
-public final class LauncherActivity extends Activity {
+public final class FileHandlerActivity extends Activity {
     /** The game's process id: start the game again once it has ended. */
-    static final String AFTER = "io.github.juanluci.starling.AFTER";
+    static final String AFTER = "com.themralex.mrcraft.AFTER";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,11 +58,11 @@ public final class LauncherActivity extends Activity {
                         }
                     });
                 }
-            }, "starling-restart").start();
+            }, "mrcraft-restart").start();
         } else if (file != null) {
             final AlertDialog copying =
                     new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                            .setMessage("Handing the file to Starling...")
+                            .setMessage("Handing the file to MrCraft...")
                             .setCancelable(false)
                             .show();
             receive(this, file, new Runnable() {
@@ -169,7 +169,7 @@ public final class LauncherActivity extends Activity {
                     }
                 } catch (Exception e) {
                     part.delete();
-                    android.util.Log.w("starling", "could not receive " + name, e);
+                    android.util.Log.w("mrcraft", "could not receive " + name, e);
                 }
                 if (part.exists() && !part.renameTo(new File(inbox, name))) {
                     part.delete();
@@ -178,7 +178,7 @@ public final class LauncherActivity extends Activity {
                     activity.runOnUiThread(done);
                 }
             }
-        }, "starling-receive").start();
+        }, "mrcraft-receive").start();
     }
 
     /** The file's name as the app it came from shows it, without folders. */

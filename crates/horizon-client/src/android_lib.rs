@@ -8,13 +8,13 @@
 use winit::platform::android::activity::AndroidApp;
 
 /// NativeActivity's entry point (the manifest's `android.app.func_name`): the game of this
-/// library, or of the build with native mods StarlingActivity loaded in its place.
+/// library, or of the build with native mods MrCraftActivity loaded in its place.
 ///
 /// # Safety
 ///
 /// NativeActivity's call: an `ANativeActivity` and its saved state.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn starling_on_create(
+pub unsafe extern "C" fn mrcraft_on_create(
     activity: *mut std::ffi::c_void,
     saved: *mut std::ffi::c_void,
     saved_size: usize,
@@ -29,9 +29,9 @@ fn android_main(app: AndroidApp) {
     horizon_client::android::main(app);
 }
 
-/// `StarlingActivity.onStorage`, called on the UI thread before the game's thread starts.
+/// `MrCraftActivity.onStorage`, called on the UI thread before the game's thread starts.
 #[unsafe(no_mangle)]
-extern "system" fn Java_io_github_juanluci_starling_StarlingActivity_onStorage(
+extern "system" fn Java_com_themralex_mrcraft_MrCraftActivity_onStorage(
     mut env: jni::JNIEnv,
     _class: jni::objects::JClass,
     folder: jni::objects::JString,
@@ -44,9 +44,9 @@ extern "system" fn Java_io_github_juanluci_starling_StarlingActivity_onStorage(
     }
 }
 
-/// `StarlingActivity.onImeHeight` (packaging/android/java), called on the UI thread.
+/// `MrCraftActivity.onImeHeight` (packaging/android/java), called on the UI thread.
 #[unsafe(no_mangle)]
-extern "system" fn Java_io_github_juanluci_starling_StarlingActivity_onImeHeight(
+extern "system" fn Java_com_themralex_mrcraft_MrCraftActivity_onImeHeight(
     _env: *mut std::ffi::c_void,
     _class: *mut std::ffi::c_void,
     pixels: i32,
@@ -56,7 +56,7 @@ extern "system" fn Java_io_github_juanluci_starling_StarlingActivity_onImeHeight
 
 /// `TextMirror.onMirrorEdit`, called on the UI thread.
 #[unsafe(no_mangle)]
-extern "system" fn Java_io_github_juanluci_starling_TextMirror_onMirrorEdit(
+extern "system" fn Java_com_themralex_mrcraft_TextMirror_onMirrorEdit(
     mut env: jni::JNIEnv,
     _class: jni::objects::JClass,
     text: jni::objects::JString,
@@ -72,7 +72,7 @@ extern "system" fn Java_io_github_juanluci_starling_TextMirror_onMirrorEdit(
 
 /// `TextMirror.onMirrorAction`, called on the UI thread.
 #[unsafe(no_mangle)]
-extern "system" fn Java_io_github_juanluci_starling_TextMirror_onMirrorAction(
+extern "system" fn Java_com_themralex_mrcraft_TextMirror_onMirrorAction(
     _env: *mut std::ffi::c_void,
     _class: *mut std::ffi::c_void,
 ) {
@@ -81,7 +81,7 @@ extern "system" fn Java_io_github_juanluci_starling_TextMirror_onMirrorAction(
 
 /// `TextMirror.onMirrorKey`, called on the UI thread.
 #[unsafe(no_mangle)]
-extern "system" fn Java_io_github_juanluci_starling_TextMirror_onMirrorKey(
+extern "system" fn Java_com_themralex_mrcraft_TextMirror_onMirrorKey(
     _env: *mut std::ffi::c_void,
     _class: *mut std::ffi::c_void,
     code: i32,
@@ -89,9 +89,9 @@ extern "system" fn Java_io_github_juanluci_starling_TextMirror_onMirrorKey(
     horizon_client::android::mirror_key(code);
 }
 
-/// `StarlingActivity.onPointerCaptureLost`, called on the UI thread.
+/// `MrCraftActivity.onPointerCaptureLost`, called on the UI thread.
 #[unsafe(no_mangle)]
-extern "system" fn Java_io_github_juanluci_starling_StarlingActivity_onPointerCaptureLost(
+extern "system" fn Java_com_themralex_mrcraft_MrCraftActivity_onPointerCaptureLost(
     _env: *mut std::ffi::c_void,
     _class: *mut std::ffi::c_void,
 ) {
@@ -100,7 +100,7 @@ extern "system" fn Java_io_github_juanluci_starling_StarlingActivity_onPointerCa
 
 /// The system diagnostics window calls this on its worker, without starting the game.
 #[unsafe(no_mangle)]
-extern "system" fn Java_io_github_juanluci_starling_DiagnosticsActivity_makeReport(
+extern "system" fn Java_com_themralex_mrcraft_DiagnosticsActivity_makeReport(
     mut env: jni::JNIEnv,
     activity: jni::objects::JObject,
     private: jni::objects::JString,

@@ -1,4 +1,4 @@
-package io.github.juanluci.starling;
+package com.themralex.mrcraft;
 
 import android.content.Context;
 import android.graphics.Color;
@@ -25,7 +25,7 @@ import android.widget.TextView;
  * (onMirrorEdit); the game's own changes (Tab, the history, a line sent) come back through update
  * and go in without coming back as an edit. The keyboard's action key and the keys only the game
  * has a use for (the history's arrows, Backspace with nothing to delete) go to the game as such.
- * Used on the UI thread only (StarlingActivity's showTextMirror and the rest).
+ * Used on the UI thread only (MrCraftActivity's showTextMirror and the rest).
  */
 final class TextMirror extends EditText {
     /** The game's flags (game/touch/text_mirror.rs): autocorrect and suggestions, else none. */

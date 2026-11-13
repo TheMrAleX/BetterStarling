@@ -1,4 +1,4 @@
-package io.github.juanluci.starling;
+package com.themralex.mrcraft;
 
 import android.app.Activity;
 import android.content.ContentResolver;
@@ -77,7 +77,7 @@ final class HorizonImport {
                     WorkService.hold(activity, REASON, "", false);
                 }
             }
-        }, "starling-horizon-import").start();
+        }, "mrcraft-horizon-import").start();
     }
 
     /** One document of the tree: its id, its name, and whether it is a folder. */
@@ -127,7 +127,7 @@ final class HorizonImport {
                 brought += bring(files, tree, inbox, path[1], document(files, tree, picked));
             }
         } catch (IOException | RuntimeException e) {
-            android.util.Log.w("starling", "could not read Horizon Android's folder", e);
+            android.util.Log.w("mrcraft", "could not read Horizon Android's folder", e);
             return "Could not read Horizon Android's files: close Horizon Android, then try again";
         }
         return brought == 0 ? "Horizon Android has no worlds or resource packs there" : null;
@@ -162,7 +162,7 @@ final class HorizonImport {
             }
             return 1;
         } catch (IOException | RuntimeException e) {
-            android.util.Log.w("starling", "could not bring " + item.name + " over", e);
+            android.util.Log.w("mrcraft", "could not bring " + item.name + " over", e);
             if (part != null) {
                 part.delete();
             }
@@ -253,7 +253,7 @@ final class HorizonImport {
         return id.substring(id.lastIndexOf('/') + 1);
     }
 
-    /** A name the inbox can hold (LauncherActivity's rule): no folders, no ".part" at its end. */
+    /** A name the inbox can hold (FileHandlerActivity's rule): no folders, no ".part" at its end. */
     private static String safe(String name) {
         String clean = name == null || name.isEmpty() ? "Horizon Android" : name;
         clean = clean.replaceAll("[/\\\\:*?\"<>|]", "_");

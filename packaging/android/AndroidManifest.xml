@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- build_apk.py fills in @APPLICATION_ID@ and @LABEL@; aapt2 sets the SDK and version numbers.
-     LauncherActivity (java/), in a process of its own, takes files opened with or shared to
-     Starling and restarts the game when it asks; StarlingActivity is NativeActivity plus the
-     system bars, the keyboard height, the file manager, picker, clipboard and the Starling
+     FileHandlerActivity (java/), in a process of its own, takes files opened with or shared to
+     MrCraft and restarts the game when it asks; MrCraftActivity is NativeActivity plus the
+     system bars, the keyboard height, the file manager, picker, clipboard and the MrCraft
      folder's setting, the mouse's capture, the controllers' motors, and the process ending with
      the activity. The libraries are extracted at
      install: the Java launchers that prepare the game files on the phone run from there. -->
@@ -11,7 +11,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- The active network's DNS servers, for servers named by an SRV record. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- The Starling folder in shared storage (Android 11 and up; before, the two below). -->
+    <!-- The MrCraft folder in shared storage (Android 11 and up; before, the two below). -->
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
@@ -23,14 +23,14 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- A controller's motors (StarlingActivity.vibratePad): hits, explosions, a totem. -->
+    <!-- A controller's motors (MrCraftActivity.vibratePad): hits, explosions, a totem. -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- For native mods that capture sound (a voice chat): asked only when the running build has
-         one, which native_build.sh finds in the mod's source (StarlingActivity.askModPermissions). -->
+         one, which native_build.sh finds in the mod's source (MrCraftActivity.askModPermissions). -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-feature android:name="android.hardware.vulkan.version" android:version="0x400003" android:required="true" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
-    <!-- Horizon Android, now part of Starling: the setup offers to bring its worlds and packs
+    <!-- Horizon Android, now part of MrCraft: the setup offers to bring its worlds and packs
          over when it is installed (HorizonImport), which Android 11 and up only tell an app that
          names it here. -->
     <queries>
@@ -46,7 +46,7 @@
         android:extractNativeLibs="true">
         <!-- A task of its own, out of the recents: the game's task stays the game's. -->
         <activity
-            android:name="io.github.juanluci.starling.LauncherActivity"
+            android:name="com.themralex.mrcraft.FileHandlerActivity"
             android:exported="true"
             android:process=":launcher"
             android:taskAffinity="@APPLICATION_ID@.launcher"
@@ -54,7 +54,7 @@
             android:noHistory="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar">
             <!-- Packs, worlds, shader packs, mods and prepared resources as .zip, opened with
-                 or shared to Starling. -->
+                 or shared to MrCraft. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -94,8 +94,8 @@
             </intent-filter>
         </activity>
         <!-- Keep the 0.2.3 home-screen component, but route before native loading. -->
-        <activity-alias android:name="io.github.juanluci.starling.StarlingActivity"
-            android:targetActivity="io.github.juanluci.starling.LauncherActivity"
+        <activity-alias android:name="com.themralex.mrcraft.MrCraftActivity"
+            android:targetActivity="com.themralex.mrcraft.FileHandlerActivity"
             android:exported="true">
             <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
             <intent-filter>
@@ -104,29 +104,29 @@
             </intent-filter>
         </activity-alias>
         <activity
-            android:name="io.github.juanluci.starling.GameActivity"
+            android:name="com.themralex.mrcraft.GameActivity"
             android:exported="true"
             android:launchMode="singleTask"
             android:screenOrientation="sensorLandscape"
             android:resizeableActivity="false"
-            android:theme="@style/Starling.Game"
+            android:theme="@style/MrCraft.Game"
             android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|density|screenSize|smallestScreenSize|layoutDirection|colorMode|fontWeightAdjustment|grammaticalGender">
             <meta-data android:name="android.app.lib_name" android:value="horizon_android" />
             <!-- Hands over to a build with native mods when the activity loaded one
                  (android_lib.rs). -->
-            <meta-data android:name="android.app.func_name" android:value="starling_on_create" />
+            <meta-data android:name="android.app.func_name" android:value="mrcraft_on_create" />
 
         </activity>
-        <activity android:name="io.github.juanluci.starling.DiagnosticsActivity"
+        <activity android:name="com.themralex.mrcraft.DiagnosticsActivity"
             android:exported="true" android:process=":diagnostics"
-            android:theme="@style/Starling.Game" android:hardwareAccelerated="false" />
+            android:theme="@style/MrCraft.Game" android:hardwareAccelerated="false" />
         <service
-            android:name="io.github.juanluci.starling.WorkService"
+            android:name="com.themralex.mrcraft.WorkService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
         <!-- The downloaded update, for the installer only (UpdateProvider). -->
         <provider
-            android:name="io.github.juanluci.starling.UpdateProvider"
+            android:name="com.themralex.mrcraft.UpdateProvider"
             android:authorities="@APPLICATION_ID@.updates"
             android:exported="false"
             android:grantUriPermissions="true" />
@@ -134,7 +134,7 @@
              bind. In a process of its own: the game ends its process with its activity, which
              would cut a copy short. -->
         <provider
-            android:name="io.github.juanluci.starling.GameFolderProvider"
+            android:name="com.themralex.mrcraft.GameFolderProvider"
             android:authorities="@APPLICATION_ID@.documents"
             android:exported="true"
             android:process=":documents"

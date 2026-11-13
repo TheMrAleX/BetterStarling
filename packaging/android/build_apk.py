@@ -34,12 +34,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
 
-APPLICATION_ID = "io.github.juanluci.starling"
-LABEL = "Starling"
+APPLICATION_ID = "com.themralex.mrcraft"
+LABEL = "MrCraft"
 # --dev and --preview: an app of its own, installed beside the release (which a build signed with
-# another key cannot install over), with its own folder (StarlingActivity.sharedFolder: StarlingDev,
-# StarlingPreview) and its own sign-in and game files. Preview is what starling-client/starling's
-# CI builds, signed with that repository's test key: the release key stays out of it.
+# another key cannot install over), with its own folder (MrCraftActivity.sharedFolder: MrCraftDev,
+# MrCraftPreview) and its own sign-in and game files. Preview is the organisation's CI build.
 DEV_SUFFIX = ".dev"
 VARIANTS = {"dev": (DEV_SUFFIX, " Dev"), "preview": (".preview", " Preview")}
 VERSION_NAME = "0.8.0"
@@ -193,7 +192,7 @@ def compile_java(build_tools, android_jar, out):
     for folder in (classes, dex):
         shutil.rmtree(folder, ignore_errors=True)
         folder.mkdir()
-    sources = sorted((HERE / "java").rglob("*.java")) + [out / "generated" / "io/github/juanluci/starling/R.java"]
+    sources = sorted((HERE / "java").rglob("*.java")) + [out / "generated" / "com/themralex/mrcraft/R.java"]
     run("javac", "--release", "8", "-nowarn", "-classpath", android_jar, "-d", classes, *sources)
     # A single archive also avoids cmd.exe's command-line limit on Windows.
     archive = out / "classes.jar"
@@ -238,10 +237,10 @@ def link_resources(aapt2, android_jar, out, assets, variant, abi=ABI):
     dark = theme.split("pub const DARK: Palette = Palette {", 1)[1].split("};", 1)[0]
     colors = dict(re.findall(r"(\w+): 0x([0-9a-fA-F]{6})", dark))
     entries = "\n".join(
-        f'<color name="starling_{name}">#{colors[name]}</color>'
+        f'<color name="mrcraft_{name}">#{colors[name]}</color>'
         for name in ("page", "rule", "ink", "ink_soft", "accent", "on_accent")
     )
-    (res / "values/starling-colors.xml").write_text(f"<resources>\n{entries}\n</resources>\n", encoding="utf-8")
+    (res / "values/mrcraft-colors.xml").write_text(f"<resources>\n{entries}\n</resources>\n", encoding="utf-8")
     compiled = out / "compiled"
     shutil.rmtree(compiled, ignore_errors=True)
     compiled.mkdir()
@@ -252,7 +251,7 @@ def link_resources(aapt2, android_jar, out, assets, variant, abi=ABI):
     run(
         aapt2, "link", "-o", out / "base.apk",
         "--manifest", out / "AndroidManifest.xml",
-        "--java", out / "generated", "--custom-package", "io.github.juanluci.starling",
+        "--java", out / "generated", "--custom-package", "com.themralex.mrcraft",
         "-I", android_jar,
         "--min-sdk-version", MIN_SDK, "--target-sdk-version", TARGET_SDK,
         "--version-code", VERSION_CODE, "--version-name", VERSION_NAME,
@@ -315,11 +314,11 @@ def main():
     )
     parser.add_argument(
         "--dev", action="store_true",
-        help=f"Starling Dev ({APPLICATION_ID}{DEV_SUFFIX}), installed beside the release",
+        help=f"MrCraft Dev ({APPLICATION_ID}{DEV_SUFFIX}), installed beside the release",
     )
     parser.add_argument(
         "--preview", action="store_true",
-        help=f"Starling Preview ({APPLICATION_ID}{VARIANTS['preview'][0]}), the organisation's CI build",
+        help=f"MrCraft Preview ({APPLICATION_ID}{VARIANTS['preview'][0]}), the organisation's CI build",
     )
     parser.add_argument("--abi", choices=TARGETS, default=ABI, help="Android ABI (default: arm64-v8a)")
     args = parser.parse_args()
@@ -362,7 +361,7 @@ def main():
     add_code(out / "base.apk", libraries, dex, out / "unsigned.apk", args.abi)
     aligned = out / "aligned.apk"
     run(tool(build_tools, "zipalign"), "-P", "16", "-f", "4", out / "unsigned.apk", aligned)
-    apk = out / f"starling{'-' + variant if variant else ''}-{VERSION_NAME}-{args.abi}.apk"
+    apk = out / f"MrCraft{'-' + variant if variant else ''}-{VERSION_NAME}-{args.abi}.apk"
     sign(build_tools, aligned, apk, out)
     print(apk)
     if args.zip:

@@ -1,4 +1,4 @@
-package io.github.juanluci.starling;
+package com.themralex.mrcraft;
 
 import java.io.File;
 import java.io.FileNotFoundException;

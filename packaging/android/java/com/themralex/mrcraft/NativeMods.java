@@ -1,4 +1,4 @@
-package io.github.juanluci.starling;
+package com.themralex.mrcraft;
 
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -18,7 +18,7 @@ import org.json.JSONObject;
 /**
  * The game with native mods (game/native_builds.rs): a build of this version's game library with
  * the player's native mods compiled in, downloaded to files/native/KEY/ and chosen by
- * files/native/current. StarlingActivity loads it in place of the APK's own library. A build is
+ * files/native/current. MrCraftActivity loads it in place of the APK's own library. A build is
  * only loaded by the install of the APK it was made under (its `apk` file, `stamp`): after any
  * install, even of the same version, it waits for its rebuild. One that stopped twice before its
  * first frame is set aside, with a notice the game shows.

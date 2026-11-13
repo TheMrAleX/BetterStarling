@@ -1,4 +1,4 @@
-package io.github.juanluci.starling;
+package com.themralex.mrcraft;
 
 import android.content.ContentProvider;
 import android.content.ContentValues;
@@ -29,7 +29,7 @@ public final class UpdateProvider extends ContentProvider {
         boolean report = uri.getPathSegments().size() == 2
                 && "diagnostics".equals(uri.getPathSegments().get(0));
         if (name == null || !(report
-                ? name.matches("starling-diagnostics-[0-9]+\\.zip")
+                ? name.matches("mrcraft-diagnostics-[0-9]+\\.zip")
                 : uri.getPathSegments().size() == 1 && name.matches("[A-Za-z0-9._-]+\\.apk"))) {
             throw new FileNotFoundException(String.valueOf(uri));
         }

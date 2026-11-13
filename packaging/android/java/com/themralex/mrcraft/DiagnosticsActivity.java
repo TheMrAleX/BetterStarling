@@ -1,4 +1,4 @@
-package io.github.juanluci.starling;
+package com.themralex.mrcraft;
 
 import android.app.Activity;
 import android.app.Dialog;
@@ -35,7 +35,7 @@ public final class DiagnosticsActivity extends Activity {
         GradientDrawable drawable = new GradientDrawable();
         drawable.setColor(fill);
         drawable.setCornerRadius(dp(radius));
-        if (border) drawable.setStroke(dp(1), color(R.color.starling_rule));
+        if (border) drawable.setStroke(dp(1), color(R.color.mrcraft_rule));
         return drawable;
     }
     private LinearLayout row(LinearLayout parent) {
@@ -54,22 +54,22 @@ public final class DiagnosticsActivity extends Activity {
         regular = Typeface.createFromAsset(getAssets(), "diagnostic-fonts/Geist-Regular.ttf");
         semibold = Typeface.createFromAsset(getAssets(), "diagnostic-fonts/Geist-SemiBold.ttf");
         FrameLayout backdrop = new FrameLayout(this);
-        backdrop.setBackgroundColor(color(R.color.starling_page));
+        backdrop.setBackgroundColor(color(R.color.mrcraft_page));
         backdrop.setPadding(dp(24), dp(24), dp(24), dp(24));
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         int pad = dp(24);
         root.setPadding(pad, pad, pad, pad);
-        root.setBackground(shape(color(R.color.starling_page), 14, true));
+        root.setBackground(shape(color(R.color.mrcraft_page), 14, true));
         TextView title = new TextView(this);
         title.setText(R.string.diagnostics_title);
         title.setTextSize(18);
-        title.setTextColor(color(R.color.starling_ink));
+        title.setTextColor(color(R.color.mrcraft_ink));
         title.setTypeface(semibold);
         root.addView(title);
         status = new TextView(this);
         status.setTextSize(14);
-        status.setTextColor(color(R.color.starling_ink_soft));
+        status.setTextColor(color(R.color.mrcraft_ink_soft));
         status.setTypeface(regular);
         status.setPadding(0, dp(18), 0, dp(18));
         status.setText(intro);
@@ -105,7 +105,7 @@ public final class DiagnosticsActivity extends Activity {
         if (recovery) StartupRecovery.offered(this);
         File[] files = new File(getFilesDir(), "performance").listFiles();
         if (files != null) for (File file : files) {
-            if (file.isFile() && file.getName().matches("starling-diagnostics-[0-9]+\\.zip")
+            if (file.isFile() && file.getName().matches("mrcraft-diagnostics-[0-9]+\\.zip")
                     && (latest == null || latest.compareTo(file.getName()) < 0)) latest = file.getName();
         }
     }
@@ -119,9 +119,9 @@ public final class DiagnosticsActivity extends Activity {
         button.setMinimumHeight(dp(40));
         button.setPadding(dp(12), dp(8), dp(12), dp(8));
         boolean primary = text == (recovery ? R.string.diagnostics_start : R.string.diagnostics_export);
-        int ink = color(primary ? R.color.starling_on_accent : R.color.starling_ink);
+        int ink = color(primary ? R.color.mrcraft_on_accent : R.color.mrcraft_ink);
         button.setTextColor(new ColorStateList(new int[][] {new int[] {-android.R.attr.state_enabled}, new int[] {}}, new int[] {(ink & 0xffffff) | 0x66000000, ink}));
-        int fill = primary ? color(R.color.starling_accent) : ((color(R.color.starling_ink) & 0xffffff) | 0x14000000);
+        int fill = primary ? color(R.color.mrcraft_accent) : ((color(R.color.mrcraft_ink) & 0xffffff) | 0x14000000);
         button.setBackground(new RippleDrawable(ColorStateList.valueOf(0x24ecedf3), shape(fill, 10, false), null));
         button.setOnClickListener(listener);
         actions.add(button);
@@ -137,7 +137,7 @@ public final class DiagnosticsActivity extends Activity {
         busy(true);
         status.setText(R.string.diagnostics_working);
         final String privateFolder = getFilesDir().getAbsolutePath();
-        String shared = StarlingActivity.sharedFolder(this);
+        String shared = MrCraftActivity.sharedFolder(this);
         final String game = shared == null ? privateFolder : shared;
         new Thread(new Runnable() {
             @Override public void run() {
@@ -173,24 +173,24 @@ public final class DiagnosticsActivity extends Activity {
     private void showLog(String result) {
         final Dialog dialog = new Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
         FrameLayout backdrop = new FrameLayout(this);
-        backdrop.setBackgroundColor(color(R.color.starling_page));
+        backdrop.setBackgroundColor(color(R.color.mrcraft_page));
         backdrop.setPadding(dp(24), dp(24), dp(24), dp(24));
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(dp(24), dp(24), dp(24), dp(24));
-        card.setBackground(shape(color(R.color.starling_page), 14, true));
+        card.setBackground(shape(color(R.color.mrcraft_page), 14, true));
         TextView title = new TextView(this);
         title.setText(R.string.diagnostics_view_log);
         title.setTextSize(18);
         title.setTypeface(semibold);
-        title.setTextColor(color(R.color.starling_ink));
+        title.setTextColor(color(R.color.mrcraft_ink));
         card.addView(title);
         TextView text = new TextView(this);
         text.setTextIsSelectable(true);
         text.setText(result);
         text.setTypeface(Typeface.MONOSPACE);
         text.setTextSize(12);
-        text.setTextColor(color(R.color.starling_ink_soft));
+        text.setTextColor(color(R.color.mrcraft_ink_soft));
         text.setPadding(0, dp(18), 0, dp(18));
         ScrollView scroll = new ScrollView(this);
         scroll.addView(text);

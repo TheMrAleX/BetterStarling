@@ -1,4 +1,4 @@
-package io.github.juanluci.starling;
+package com.themralex.mrcraft;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -17,7 +17,7 @@ import java.util.Map;
  * that happens outside it: the Microsoft sign-in in the browser, the game files downloading.
  * Many phones cut a background app's internet, or end it (battery and data savers, the maker's
  * own rules: a sign-in stopped with "Could not reach Microsoft"); a foreground service is spared
- * both. It runs while one reason holds it (StarlingActivity.keepWorking, from the game).
+ * both. It runs while one reason holds it (MrCraftActivity.keepWorking, from the game).
  */
 public final class WorkService extends Service {
     private static final String CHANNEL = "work";
@@ -59,7 +59,7 @@ public final class WorkService extends Service {
 
     private static String line() {
         synchronized (REASONS) {
-            String last = "Starling is working";
+            String last = "MrCraft is working";
             for (String line : REASONS.values()) {
                 last = line;
             }
@@ -75,7 +75,7 @@ public final class WorkService extends Service {
                     (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
             if (manager != null) {
                 manager.createNotificationChannel(new NotificationChannel(
-                        CHANNEL, "Starling at work", NotificationManager.IMPORTANCE_LOW));
+                        CHANNEL, "MrCraft at work", NotificationManager.IMPORTANCE_LOW));
             }
             builder = new Notification.Builder(this, CHANNEL);
         } else {
@@ -83,7 +83,7 @@ public final class WorkService extends Service {
         }
         Notification notification = builder
                 .setSmallIcon(getApplicationInfo().icon)
-                .setContentTitle("Starling")
+                .setContentTitle("MrCraft")
                 .setContentText(line())
                 .setOngoing(true)
                 .build();

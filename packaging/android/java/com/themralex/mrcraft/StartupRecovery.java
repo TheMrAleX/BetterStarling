@@ -1,4 +1,4 @@
-package io.github.juanluci.starling;
+package com.themralex.mrcraft;
 
 import android.content.Context;
 import android.util.AtomicFile;
@@ -9,11 +9,11 @@ import org.json.JSONObject;
 
 /** Persist each attempt before native loading; offer recovery once per interrupted attempt. */
 final class StartupRecovery {
-    static final String RECOVERY = "io.github.juanluci.starling.INTERRUPTED_START";
+    static final String RECOVERY = "com.themralex.mrcraft.INTERRUPTED_START";
     private static File marker(Context context) { return new File(context.getFilesDir(), "starling-starting"); }
     static void begin(Context context) {
         try { new FileOutputStream(marker(context)).close(); }
-        catch (java.io.IOException error) { android.util.Log.w("starling", "Cannot record startup", error); }
+        catch (java.io.IOException error) { android.util.Log.w("mrcraft", "Cannot record startup", error); }
     }
     static void shown(Context context) { marker(context).delete(); }
     static void offered(Context context) {
@@ -30,7 +30,7 @@ final class StartupRecovery {
             file.finishWrite(output);
         } catch (Exception error) {
             if (output != null) file.failWrite(output);
-            if (session.exists()) android.util.Log.w("starling", "Cannot acknowledge recovery", error);
+            if (session.exists()) android.util.Log.w("mrcraft", "Cannot acknowledge recovery", error);
         }
     }
     static boolean interrupted(Context context) {

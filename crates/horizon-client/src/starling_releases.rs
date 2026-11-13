@@ -1,15 +1,13 @@
-//! Where Starling's releases come out, and what of a release is Starling's: for the update prompt
+//! Where MrCraft's releases come out, and what of a release is MrCraft's: for the update prompt
 //! (game/update_offer.rs) and the native mod builds (game/native_builds.rs), on Android.
 //!
-//! Starling and Horizon Android are one project now, in the organisation's repository
-//! (starling-client/starling); Starling's own (JuanLuci/starling) is where its releases came out
-//! before, and still do until the merged one. Both are asked, the organisation's first, so an
-//! install follows the releases wherever they come out. The organisation's repository also holds
-//! Horizon Android's releases (its APKs are named after it) and preview builds of Starling
-//! (`starling-preview-...`): only an APK named `starling-<version>-...` is an update.
+//! MrCraft is its own project now, in this repository (TheMrAleX/BetterStarling), and its releases
+//! come out of it alone. Only an APK named `MrCraft-<version>-<abi>.apk` is an update: another
+//! app's release (Starling's own, or Horizon Android's, whose APKs are named after it) is never
+//! offered for install.
 
-/// The repositories, as GitHub's API names them, the organisation's first.
-pub const REPOSITORIES: [&str; 2] = ["starling-client/starling", "JuanLuci/starling"];
+/// The repository, as GitHub's API names it.
+pub const REPOSITORIES: [&str; 1] = ["TheMrAleX/BetterStarling"];
 
 /// A repository's latest release, as GitHub's API serves it.
 pub fn latest_url(repository: &str) -> String {

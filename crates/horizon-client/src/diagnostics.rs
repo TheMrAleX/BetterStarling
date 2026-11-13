@@ -274,7 +274,7 @@ pub(crate) fn export_from(home: &Path, player: &Path) -> Result<PathBuf, String>
     flush();
     let dir = home.join("performance");
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    let path = dir.join(format!("starling-diagnostics-{}.zip", timestamp()));
+    let path = dir.join(format!("mrcraft-diagnostics-{}.zip", timestamp()));
     let stage = path.with_extension("partial");
     let result = (|| -> Result<(), Box<dyn std::error::Error>> {
         let mut files = Vec::new();
@@ -405,7 +405,7 @@ pub(crate) fn export_from(home: &Path, player: &Path) -> Result<PathBuf, String>
         .map(|e| e.path())
         .filter(|p| {
             p.file_name()
-                .is_some_and(|n| n.to_string_lossy().starts_with("starling-diagnostics-"))
+                .is_some_and(|n| n.to_string_lossy().starts_with("mrcraft-diagnostics-"))
                 && p.extension().is_some_and(|s| s == "zip")
         })
         .collect();
@@ -422,7 +422,7 @@ mod tests {
     use super::*;
     fn home() -> PathBuf {
         let path = std::env::temp_dir().join(format!(
-            "starling-diagnostics-unit-{}-{}",
+            "mrcraft-diagnostics-unit-{}-{}",
             std::process::id(),
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)

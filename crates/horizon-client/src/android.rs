@@ -2,7 +2,7 @@
 //! process's start-up on a NativeActivity.
 //!
 //! The cdylib (horizon-android, `android_lib.rs`) is only the entry points Android and the JVM look
-//! up by name (`android_main`, `starling_on_create`, the `Java_...` native methods): they call the
+//! up by name (`android_main`, `mrcraft_on_create`, the `Java_...` native methods): they call the
 //! functions here. `main` gives the process what the desktop binary gets from its launcher (the
 //! game folder as the current directory and `HORIZON_HOME`, the command line) and then starts the
 //! game as `entry::main` does.
@@ -27,7 +27,7 @@ pub fn set_shared_folder(folder: PathBuf) {
 }
 
 /// NativeActivity's entry point (the manifest's `android.app.func_name`, through the cdylib's
-/// `starling_on_create`): the game of this library, or of the build with native mods
+/// `mrcraft_on_create`): the game of this library, or of the build with native mods
 /// StarlingActivity loaded in its place (`STARLING_GAME_LIBRARY`, NativeMods.java). The activity
 /// loaded that build first, for its Java native methods; dlopen finds it loaded, so the activity
 /// and the game share one library.
